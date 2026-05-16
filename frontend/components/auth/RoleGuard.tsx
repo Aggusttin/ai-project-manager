@@ -1,27 +1,62 @@
 "use client";
 
-import { ReactNode } from "react";
+import {
+  ReactNode,
+  useEffect,
+  useState,
+} from "react";
 
 interface Props {
   roles: string[];
   children: ReactNode;
 }
 
-export default function RoleGuard({ roles, children }: Props) {
-  if (typeof window === "undefined") return null;
+export default function RoleGuard({
+  roles,
+  children,
+}: Props) {
+  const [allowed, setAllowed] =
+    useState(false);
 
-  let user = null;
+  const [mounted, setMounted] =
+    useState(false);
 
-  try {
-    const stored = localStorage.getItem("user");
-    user = stored ? JSON.parse(stored) : null;
-  } catch {
+  useEffect(() => {
+    setMounted(true);
+
+    try {
+      const storedUser =
+        localStorage.getItem("user");
+
+      if (!storedUser) {
+        setAllowed(false);
+        return;
+      }
+
+      const user =
+        JSON.parse(storedUser);
+
+      const rol =
+        typeof user.rol === "object"
+          ? user.rol?.nombre
+          : user.rol;
+
+      setAllowed(
+        roles.includes(rol)
+      );
+    } catch {
+      setAllowed(false);
+    }
+
+  }, []);
+
+  if (!mounted) {
     return null;
   }
 
-  if (!user?.rol) return null;
-
-  if (!roles.includes(user.rol)) return null;
+  if (!allowed) {
+    return null;
+  }
 
   return <>{children}</>;
 }

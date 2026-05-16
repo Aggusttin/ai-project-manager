@@ -6,6 +6,7 @@ import {
   CreateDateColumn,
   JoinTable,
   OneToMany,
+  DeleteDateColumn,
 } from 'typeorm';
 
 import { Usuario } from '../usuarios/usuario.entity';
@@ -21,47 +22,84 @@ export class Proyecto {
   @Column()
   nombre: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
   descripcion: string;
 
-  @Column({ default: true })
+  @Column({
+    default: true,
+  })
   activo: boolean;
 
-  @Column({ default: 'backlog' })
+  @Column({
+    default: 'backlog',
+  })
   estado: string;
 
-  @Column({ type: 'int', default: 0 })
+  @Column({
+    type: 'int',
+    default: 0,
+  })
   estimacion_tiempo: number;
 
-  @Column({ type: 'int', default: 0 })
+  @Column({
+    type: 'int',
+    default: 0,
+  })
   total_puntos_historia: number;
 
   @CreateDateColumn()
   fecha_creacion: Date;
 
-  // ================================
-  // ✅ USUARIOS
-  // ================================
-  @ManyToMany(() => Usuario, (usuario) => usuario.proyectos)
-  @JoinTable({ name: 'proyecto_usuarios' })
+  // ✅ SOFT DELETE REAL
+  @DeleteDateColumn()
+  deletedAt?: Date;
+
+  // =========================
+  // USUARIOS
+  // =========================
+
+  @ManyToMany(
+    () => Usuario,
+    (usuario) => usuario.proyectos,
+  )
+  @JoinTable({
+    name: 'proyecto_usuarios',
+  })
   usuarios: Usuario[];
 
-  // ================================
-  // ✅ CLIENTES
-  // ================================
-  @ManyToMany(() => Cliente, (cliente) => cliente.proyectos)
-  @JoinTable({ name: 'proyecto_clientes' })
+  // =========================
+  // CLIENTES
+  // =========================
+
+  @ManyToMany(
+    () => Cliente,
+    (cliente) => cliente.proyectos,
+  )
+  @JoinTable({
+    name: 'proyecto_clientes',
+  })
   clientes: Cliente[];
 
-  // ================================
-  // ✅ PRD
-  // ================================
-  @OneToMany(() => Prd, (prd) => prd.proyecto)
+  // =========================
+  // PRD
+  // =========================
+
+  @OneToMany(
+    () => Prd,
+    (prd) => prd.proyecto,
+  )
   prds: Prd[];
 
-  // ================================
-  // ✅ USER STORIES (🔥 CLAVE)
-  // ================================
-  @OneToMany(() => UserStory, (us) => us.proyecto)
+  // =========================
+  // USER STORIES
+  // =========================
+
+  @OneToMany(
+    () => UserStory,
+    (us) => us.proyecto,
+  )
   userStories: UserStory[];
 }
