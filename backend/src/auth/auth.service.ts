@@ -43,7 +43,6 @@ export class AuthService {
 
   async validateUser(email: string, pass: string) {
     try {
-
       console.log('EMAIL RECIBIDO:', email);
 
       const user = await this.usuariosRepository.findOne({
@@ -97,13 +96,14 @@ export class AuthService {
   }
 
   // =========================================================
-  // LOGIN
+  // LOGIN (Corregido)
   // =========================================================
 
   async login(user: any) {
     try {
+      // Extraemos de forma segura el texto del rol
       const rol =
-        typeof user.rol === 'object'
+        typeof user.rol === 'object' && user.rol !== null
           ? user.rol?.nombre
           : user.rol;
 
@@ -117,11 +117,17 @@ export class AuthService {
         sub: user.id,
         email: user.email,
         username: user.username,
-        rol,
+        rol, 
       };
 
+      // 🔑 SOLUCIÓN: Usamos "as any" para esquivar la restricción estricta de sobrecarga de TS
+      const token = this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET || 'claveSecretaDeEmergencia123',
+        expiresIn: (process.env.JWT_EXPIRES_IN || '1d') as any,
+      });
+
       return {
-        access_token: this.jwtService.sign(payload),
+        access_token: token,
 
         user: {
           id: user.id,
@@ -133,6 +139,9 @@ export class AuthService {
         },
       };
     } catch (error) {
+      // Dejamos el log activo por seguridad
+      this.logger.error('Error interno en login:', error);
+      
       throw new InternalServerErrorException(
         'Error al generar el token',
       );

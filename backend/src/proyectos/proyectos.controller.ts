@@ -34,6 +34,12 @@ export class ProyectosController {
   // LISTAR PROYECTOS
   // =========================================
 
+  @Get('inactivos')
+  @Roles('superadmin', 'admin_proyecto')
+  findInactivos(@Request() req) {
+    return this.proyectosService.findInactivos(req.user);
+  }
+
   @Get()
   @Roles(
     'superadmin',
@@ -140,17 +146,10 @@ export class ProyectosController {
   // =========================================
 
   @Patch(':id/restore')
-  @Roles('superadmin')
-  restore(
-    @Param('id', ParseIntPipe)
-    id: number,
-
-    @Request() req,
-  ) {
-    return this.proyectosService.restore(
-      id,
-      req.user,
-    );
+  @Roles('superadmin', 'admin_proyecto')
+  async restore(@Param('id') id: string, @Request() req) { // 1. Agregamos @Request() req
+    // 2. Pasamos el id y el usuario (req.user)
+    return await this.proyectosService.restore(+id, req.user); 
   }
 
   // =========================================

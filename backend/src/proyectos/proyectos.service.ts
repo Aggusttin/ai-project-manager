@@ -34,57 +34,26 @@ export class ProyectosService {
   // =========================================
 
   async findAll(user: any) {
-    const userRole =
-      typeof user.rol === 'object'
-        ? user.rol?.nombre
-        : user.rol;
-
-    // ✅ SUPERADMIN VE TODO
+    const userRole = typeof user.rol === 'object' ? user.rol?.nombre : user.rol;
 
     if (userRole === 'superadmin') {
       return this.proyectosRepository.find({
-        withDeleted: true,
-
-        relations: [
-          'usuarios',
-          'clientes',
-        ],
-
-        order: {
-          activo: 'DESC',
-          fecha_creacion: 'DESC',
-        },
+        withDeleted: false, // Solo activos
+        relations: ['usuarios', 'clientes'],
+        order: { activo: 'DESC', fecha_creacion: 'DESC' },
       });
     }
 
-    // ✅ OTROS SOLO ACTIVOS
-
-    return this.proyectosRepository
-      .createQueryBuilder(
-        'proyecto',
-      )
-      .leftJoinAndSelect(
-        'proyecto.usuarios',
-        'usuario',
-      )
-      .leftJoinAndSelect(
-        'proyecto.clientes',
-        'cliente',
-      )
-      .where(
-        'usuario.id = :userId',
-        {
-          userId: user.sub,
-        },
-      )
-      .andWhere(
-        'proyecto.activo = true',
-      )
-      .orderBy(
-        'proyecto.fecha_creacion',
-        'DESC',
-      )
-      .getMany();
+    // --- SOLUCIÓN: Usar find en lugar de QueryBuilder para evitar errores de JOIN ---
+    // Esto es mucho más seguro para evitar que la relación de usuario falle
+    return await this.proyectosRepository.find({
+      where: {
+        activo: true,
+        usuarios: { id: user.sub } // TypeORM maneja el JOIN automáticamente
+      },
+      relations: ['usuarios', 'clientes'],
+      order: { fecha_creacion: 'DESC' }
+    });
   }
 
   // =========================================
@@ -145,15 +114,20 @@ export class ProyectosService {
     dto: CreateProyectoDto,
     user: any,
   ) {
-    const proyecto =
-      this.proyectosRepository.create({
-        ...dto,
+    // 1. Buscamos la entidad completa del usuario que está logueado usando su ID (user.sub)
+    const usuarioLogueado = await this.usuariosRepository.findOne({
+      where: { id: user.sub },
+    });
 
-        activo: true,
+    // 2. Creamos el proyecto asociándole el usuario adentro del arreglo de 'usuarios'
+    const proyecto = this.proyectosRepository.create({
+      ...dto,
+      activo: true,
+      estado: 'activo',
+      usuarios: usuarioLogueado ? [usuarioLogueado] : [], // <-- Se auto-asigna acá
+    });
 
-        estado: 'activo',
-      });
-
+    // 3. Guardamos en la base de datos relacional
     return this.proyectosRepository.save(
       proyecto,
     );
@@ -220,57 +194,35 @@ export class ProyectosService {
   // REACTIVAR
   // =========================================
 
-  async restore(
-    id: number,
-    user: any,
-  ) {
-    const proyecto =
-      await this.proyectosRepository.findOne(
-        {
-          where: { id },
+  async restore(id: number, user: any) {
+    // 1. Buscamos el proyecto
+    const proyecto = await this.proyectosRepository.findOne({
+      where: { id },
+      withDeleted: true, // Importante para encontrar el borrado
+      relations: ['usuarios'],
+    });
 
-          withDeleted: true,
+    if (!proyecto) throw new NotFoundException('Proyecto no encontrado');
 
-          relations: ['usuarios'],
-        },
-      );
+    // 2. FORZAR la limpieza del deletedAt manualmente
+    // Esto es más efectivo que solo .restore() si tu configuración es estricta
+    await this.proyectosRepository.update(id, { 
+      deletedAt: null,
+      activo: true,
+      estado: 'activo'
+    } as any);
 
-    if (!proyecto) {
-      throw new NotFoundException(
-        'Proyecto no encontrado',
-      );
+    // 3. Asegurar el vínculo con el usuario (la lógica que ya tenías)
+    const yaEstaAsignado = proyecto.usuarios?.some((u) => u.id === user.sub);
+    if (!yaEstaAsignado) {
+      const usuarioLogueado = await this.usuariosRepository.findOne({ where: { id: user.sub } });
+      if (usuarioLogueado) {
+        proyecto.usuarios = [...(proyecto.usuarios || []), usuarioLogueado];
+        await this.proyectosRepository.save(proyecto);
+      }
     }
 
-    const userRole =
-      typeof user.rol === 'object'
-        ? user.rol?.nombre
-        : user.rol;
-
-    const pertenece =
-      proyecto.usuarios?.some(
-        (u) => u.id === user.sub,
-      );
-
-    if (
-      userRole !== 'superadmin' &&
-      !pertenece
-    ) {
-      throw new ForbiddenException(
-        'No tenés acceso a este proyecto',
-      );
-    }
-
-    await this.proyectosRepository.restore(
-      id,
-    );
-
-    proyecto.activo = true;
-
-    proyecto.estado = 'activo';
-
-    return this.proyectosRepository.save(
-      proyecto,
-    );
+    return { message: 'Proyecto reactivado correctamente' };
   }
 
   // =========================================
@@ -406,5 +358,15 @@ export class ProyectosService {
       mensaje:
         'PRD pendiente de implementación IA',
     };
+  }
+
+  async findInactivos(user: any) {
+    return this.proyectosRepository.find({
+      where: { 
+        activo: false 
+      },
+      withDeleted: true, // Esto es clave para ver los que tienen el soft-delete
+      relations: ['usuarios'],
+    });
   }
 }
