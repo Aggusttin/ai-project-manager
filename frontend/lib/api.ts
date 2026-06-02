@@ -1,7 +1,17 @@
 import axios from "axios";
 
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://127.0.0.1:3001";
+
 export const api = axios.create({
-  baseURL: "http://localhost:3001",
+  baseURL: API_URL,
+
+  headers: {
+    "Content-Type": "application/json",
+  },
+
+  withCredentials: false,
 });
 
 // =========================================================
@@ -10,9 +20,7 @@ export const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    if (
-      typeof window !== "undefined"
-    ) {
+    if (typeof window !== "undefined") {
       const token =
         localStorage.getItem("token");
 
@@ -34,12 +42,14 @@ api.interceptors.response.use(
   (response) => response,
 
   (error) => {
-    if (
-      typeof window !== "undefined"
-    ) {
-      // limpiar sesión si expiró
+    console.error(
+      "AXIOS ERROR:",
+      error?.response || error
+    );
+
+    if (typeof window !== "undefined") {
       if (
-        error.response?.status === 401
+        error?.response?.status === 401
       ) {
         localStorage.removeItem(
           "token"

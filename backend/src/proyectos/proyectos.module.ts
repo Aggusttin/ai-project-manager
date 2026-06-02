@@ -1,13 +1,20 @@
 import { Module } from '@nestjs/common';
+
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { ProyectosService } from './proyectos.service';
 import { ProyectosController } from './proyectos.controller';
 
+import { ProyectosService } from './proyectos.service';
+
 import { Proyecto } from './proyecto.entity';
+
 import { Usuario } from '../usuarios/usuario.entity';
+
 import { Cliente } from '../clientes/cliente.entity';
-import { UserStory } from '../user-stories/user-story.entity'; // 👈 IMPORTANTE
+
+import { UserStory } from '../user-stories/user-story.entity';
+
+import { IaModule } from '../ia/ia.module';
 
 @Module({
   imports: [
@@ -15,11 +22,22 @@ import { UserStory } from '../user-stories/user-story.entity'; // 👈 IMPORTANT
       Proyecto,
       Usuario,
       Cliente,
-      UserStory, 
+      UserStory,
     ]),
+
+    IaModule,
   ],
-  controllers: [ProyectosController],
-  providers: [ProyectosService],
-  exports: [ProyectosService],
+
+  controllers: [
+    ProyectosController,
+  ],
+
+  providers: [
+    ProyectosService,
+  ],
+
+  exports: [
+    ProyectosService,
+  ],
 })
 export class ProyectosModule {}

@@ -1,45 +1,94 @@
 import {
+  Body,
   Controller,
   Get,
-  Post,
-  Body,
-  Patch,
   Param,
-  UseGuards,
-  ParseIntPipe,
+  Patch,
+  Post,
+  Delete,
 } from '@nestjs/common';
 
 import { UserStoriesService } from './user-stories.service';
+
 import { CreateUserStoryDto } from './dto/create-user-story.dto';
 
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
+import { UpdateUserStoryDto } from './dto/update-user-story.dto';
 
 @Controller('user-stories')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class UserStoriesController {
-  constructor(private readonly usService: UserStoriesService) {}
+  constructor(
+    private readonly userStoriesService: UserStoriesService,
+  ) {}
+
+  // =========================================================
+  // CREAR
+  // =========================================================
 
   @Post()
-  @Roles('superadmin', 'admin_proyecto', 'desarrollador')
-  create(@Body() dto: CreateUserStoryDto) {
-    return this.usService.create(dto);
+  create(
+    @Body()
+    dto: CreateUserStoryDto,
+  ) {
+    return this.userStoriesService.create(
+      dto,
+    );
   }
+
+  // =========================================================
+  // LISTAR POR PROYECTO
+  // =========================================================
 
   @Get('proyecto/:id')
-  @Roles('superadmin', 'admin_proyecto', 'desarrollador')
-  findAllByProyecto(@Param('id', ParseIntPipe) id: number) {
-    return this.usService.findAllByProyecto(id);
+  findByProyecto(
+    @Param('id') id: string,
+  ) {
+    return this.userStoriesService.findByProyecto(
+      Number(id),
+    );
   }
 
-  // 🔥 PASAMOS DTO NORMAL
-  @Patch(':id')
-  @Roles('superadmin', 'admin_proyecto', 'desarrollador')
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: Partial<CreateUserStoryDto>,
+
+  // =========================================================
+  // OBTENER UNA
+  // =========================================================
+
+  @Get(':id')
+  findOne(
+
+    @Param('id') id: string,
   ) {
-    return this.usService.update(id, dto);
+    return this.userStoriesService.findOne(
+      Number(id),
+    );
+  }
+
+  // =========================================================
+  // ACTUALIZAR
+  // =========================================================
+
+  @Patch(':id')
+  update(
+    @Param('id') id: string,
+
+    @Body()
+    body: UpdateUserStoryDto,
+  ) {
+    return this.userStoriesService.update(
+      Number(id),
+      body,
+    );
+  }
+
+  // =========================================================
+  // ELIMINAR
+  // =========================================================
+
+  @Delete(':id')
+  remove(
+    @Param('id') id: string,
+  ) {
+    return this.userStoriesService.remove(
+      Number(id),
+    );
   }
 }

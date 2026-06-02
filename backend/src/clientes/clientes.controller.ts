@@ -1,40 +1,96 @@
 import {
+  Body,
   Controller,
   Get,
-  Post,
-  Body,
   Param,
-  UseGuards,
-  ParseIntPipe,
+  Patch,
+  Post,
 } from '@nestjs/common';
 
 import { ClientesService } from './clientes.service';
+
 import { CreateClienteDto } from './dto/create-cliente.dto';
 
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-
 @Controller('clientes')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class ClientesController {
-  constructor(private readonly clientesService: ClientesService) {}
+  constructor(
+    private readonly clientesService: ClientesService,
+  ) {}
+
+  // ======================================================
+  // CREAR
+  // ======================================================
 
   @Post()
-  @Roles('superadmin', 'admin_proyecto')
-  create(@Body() dto: CreateClienteDto) {
-    return this.clientesService.create(dto);
+  create(
+    @Body()
+    createClienteDto: CreateClienteDto,
+  ) {
+    return this.clientesService.create(
+      createClienteDto,
+    );
   }
 
+  // ======================================================
+  // LISTAR
+  // ======================================================
+
   @Get()
-  @Roles('superadmin', 'admin_proyecto', 'desarrollador')
   findAll() {
     return this.clientesService.findAll();
   }
 
+  // ======================================================
+  // VER UNO
+  // ======================================================
+
   @Get(':id')
-  @Roles('superadmin', 'admin_proyecto', 'desarrollador')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.clientesService.findOne(id);
+  findOne(
+    @Param('id') id: string,
+  ) {
+    return this.clientesService.findOne(
+      +id,
+    );
+  }
+
+  // ======================================================
+  // EDITAR
+  // ======================================================
+
+  @Patch(':id')
+  update(
+    @Param('id') id: string,
+    @Body() data: Partial<CreateClienteDto>,
+  ) {
+    return this.clientesService.update(
+      +id,
+      data,
+    );
+  }
+
+  // ======================================================
+  // DESACTIVAR
+  // ======================================================
+
+  @Patch(':id/delete')
+  deactivate(
+    @Param('id') id: string,
+  ) {
+    return this.clientesService.deactivate(
+      +id,
+    );
+  }
+
+  // ======================================================
+  // REACTIVAR
+  // ======================================================
+
+  @Patch(':id/restore')
+  restore(
+    @Param('id') id: string,
+  ) {
+    return this.clientesService.restore(
+      +id,
+    );
   }
 }

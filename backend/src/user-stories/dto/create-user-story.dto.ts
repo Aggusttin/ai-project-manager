@@ -4,7 +4,10 @@ import {
   IsInt,
   IsOptional,
   IsNumber,
+  IsEnum,
 } from 'class-validator';
+
+import { EstadoUS } from '../user-story.entity';
 
 export class CreateUserStoryDto {
   @IsString()
@@ -23,15 +26,21 @@ export class CreateUserStoryDto {
   @IsOptional()
   estimacion?: number;
 
-  @IsString()
+  @IsInt()
   @IsOptional()
-  estado?: string;
+  puntos_historia?: number;
+
+  @IsEnum(EstadoUS)
+  @IsOptional()
+  estado?: EstadoUS;
 
   @IsInt()
   @IsNotEmpty()
   proyectoId: number;
 
-  // 🔥 NUEVOS CAMPOS (CLAVE)
+  // ======================================================
+  // IA
+  // ======================================================
 
   @IsString()
   @IsOptional()

@@ -15,11 +15,11 @@ import {
 // MÓDULOS
 // =========================================================
 
-import { ProyectosModule } from './proyectos/proyectos.module';
-
 import { AuthModule } from './auth/auth.module';
 
 import { UsuariosModule } from './usuarios/usuarios.module';
+
+import { ProyectosModule } from './proyectos/proyectos.module';
 
 import { ClientesModule } from './clientes/clientes.module';
 
@@ -29,6 +29,8 @@ import { UserStoriesModule } from './user-stories/user-stories.module';
 
 import { PrdModule } from './prd/prd.module';
 
+import { IaModule } from './ia/ia.module';
+
 @Module({
   imports: [
     // =========================================================
@@ -37,7 +39,6 @@ import { PrdModule } from './prd/prd.module';
 
     ConfigModule.forRoot({
       isGlobal: true,
-
       envFilePath: '.env',
     }),
 
@@ -48,7 +49,6 @@ import { PrdModule } from './prd/prd.module';
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
-
         limit: 20,
       },
     ]),
@@ -62,40 +62,39 @@ import { PrdModule } from './prd/prd.module';
 
       useFactory: (
         configService: ConfigService,
-      ) => {
-        return {
-          type: 'postgres',
+      ) => ({
+        type: 'postgres',
 
-          host: configService.get<string>(
+        host:
+          configService.get<string>(
             'DB_HOST',
           ),
 
-          port: Number(
-            configService.get<string>(
-              'DB_PORT',
-            ),
+        port: Number(
+          configService.get<string>(
+            'DB_PORT',
+          ),
+        ),
+
+        username:
+          configService.get<string>(
+            'DB_USER',
           ),
 
-          username:
-            configService.get<string>(
-              'DB_USER',
-            ),
+        password:
+          configService.get<string>(
+            'DB_PASSWORD',
+          ),
 
-          password:
-            configService.get<string>(
-              'DB_PASSWORD',
-            ),
+        database:
+          configService.get<string>(
+            'DB_NAME',
+          ),
 
-          database:
-            configService.get<string>(
-              'DB_NAME',
-            ),
+        autoLoadEntities: true,
 
-          autoLoadEntities: true,
-
-          synchronize: true,
-        };
-      },
+        synchronize: true,
+      }),
     }),
 
     // =========================================================
@@ -115,6 +114,8 @@ import { PrdModule } from './prd/prd.module';
     UserStoriesModule,
 
     PrdModule,
+
+    IaModule,
   ],
 })
 export class AppModule {}

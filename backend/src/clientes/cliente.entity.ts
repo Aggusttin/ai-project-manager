@@ -5,17 +5,28 @@ import {
   CreateDateColumn,
   ManyToMany,
 } from 'typeorm';
+
 import { Proyecto } from '../proyectos/proyecto.entity';
 
 @Entity('clientes')
 export class Cliente {
+  // ======================================================
+  // ID
+  // ======================================================
+
   @PrimaryGeneratedColumn()
   id: number;
+
+  // ======================================================
+  // DATOS EMPRESA
+  // ======================================================
 
   @Column()
   razon_social: string;
 
-  @Column({ unique: true })
+  @Column({
+    unique: true,
+  })
   cuit: string;
 
   @Column()
@@ -33,10 +44,29 @@ export class Cliente {
   @Column()
   ciudad: string;
 
+  // ======================================================
+  // ESTADO
+  // ======================================================
+
+  @Column({
+    default: true,
+  })
+  activo: boolean;
+
+  // ======================================================
+  // FECHA CREACION
+  // ======================================================
+
   @CreateDateColumn()
   fecha_creacion: Date;
 
-  // ❌ SIN JoinTable
-  @ManyToMany(() => Proyecto, (proyecto) => proyecto.clientes)
+  // ======================================================
+  // RELACIONES
+  // ======================================================
+
+  @ManyToMany(
+    () => Proyecto,
+    (proyecto) => proyecto.clientes,
+  )
   proyectos: Proyecto[];
 }

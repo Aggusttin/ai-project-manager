@@ -16,6 +16,8 @@ import { Usuario } from '../usuarios/usuario.entity';
 
 import { Cliente } from '../clientes/cliente.entity';
 
+import { GeminiService } from '../ia/services/gemini.service';
+
 @Injectable()
 export class ProyectosService {
   constructor(
@@ -27,6 +29,7 @@ export class ProyectosService {
 
     @InjectRepository(Cliente)
     private clientesRepository: Repository<Cliente>,
+    
   ) {}
 
   // =========================================
@@ -358,6 +361,7 @@ export class ProyectosService {
       mensaje:
         'PRD pendiente de implementación IA',
     };
+
   }
 
   async findInactivos(user: any) {

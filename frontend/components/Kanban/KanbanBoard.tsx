@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import { api } from "@/lib/api";
 
 import {
@@ -15,23 +16,39 @@ export default function KanbanBoard({
 }: {
   proyectoId: number;
 }) {
-  const [historias, setHistorias] = useState<any[]>([]);
+  const [historias, setHistorias] =
+    useState<any[]>([]);
+
+  // ======================================================
+  // CARGAR HISTORIAS
+  // ======================================================
 
   useEffect(() => {
-    fetchHistorias();
-  }, []);
-
-  const fetchHistorias = async () => {
-    try {
-      const res = await api.get(
-        `/user-stories/proyecto/${proyectoId}`
-      );
-
-      setHistorias(res.data);
-    } catch (error) {
-      console.error(error);
+    if (proyectoId) {
+      fetchHistorias();
     }
-  };
+  }, [proyectoId]);
+
+  const fetchHistorias =
+    async () => {
+      try {
+        const res =
+          await api.get(
+            `/user-stories/proyecto/${proyectoId}`
+          );
+
+        setHistorias(res.data);
+      } catch (error) {
+        console.error(
+          "Error cargando historias:",
+          error
+        );
+      }
+    };
+
+  // ======================================================
+  // DRAG & DROP
+  // ======================================================
 
   const handleDragEnd = async (
     event: DragEndEvent
@@ -40,8 +57,25 @@ export default function KanbanBoard({
 
     if (!over) return;
 
-    const historiaId = active.id;
-    const nuevoEstado = over.id;
+    const historiaId = Number(
+      active.id
+    );
+
+    const nuevoEstado =
+      String(over.id);
+
+    const historiaActual =
+      historias.find(
+        (h) => h.id === historiaId
+      );
+
+    // evitar mover a misma columna
+    if (
+      historiaActual?.estado ===
+      nuevoEstado
+    ) {
+      return;
+    }
 
     try {
       await api.patch(
@@ -51,55 +85,64 @@ export default function KanbanBoard({
         }
       );
 
+      // refrescar
       fetchHistorias();
     } catch (error) {
-      console.error(error);
+      console.error(
+        "Error moviendo historia:",
+        error
+      );
     }
   };
 
-  const columnas = {
-    backlog: historias.filter(
-      (h) => h.estado === "backlog"
-    ),
+  // ======================================================
+  // COLUMNAS
+  // ======================================================
 
-    ready: historias.filter(
-      (h) => h.estado === "ready"
-    ),
+  const backlog =
+    historias.filter(
+      (h) =>
+        h.estado === "backlog"
+    );
 
-    in_progress: historias.filter(
-      (h) => h.estado === "in_progress"
-    ),
+  const enProgreso =
+    historias.filter(
+      (h) =>
+        h.estado ===
+        "en_progreso"
+    );
 
-    done: historias.filter(
-      (h) => h.estado === "done"
-    ),
-  };
+  const aprobada =
+    historias.filter(
+      (h) =>
+        h.estado === "aprobada"
+    );
 
   return (
-    <DndContext onDragEnd={handleDragEnd}>
-      <div className="grid grid-cols-4 gap-4 mt-6">
+    <DndContext
+      onDragEnd={
+        handleDragEnd
+      }
+    >
+      <div className="grid grid-cols-3 gap-6 mt-6">
         <KanbanColumn
           id="backlog"
           titulo="📋 Backlog"
-          historias={columnas.backlog}
+          historias={backlog}
         />
 
         <KanbanColumn
-          id="ready"
-          titulo="🟡 Ready"
-          historias={columnas.ready}
-        />
-
-        <KanbanColumn
-          id="in_progress"
+          id="en_progreso"
           titulo="🚧 En progreso"
-          historias={columnas.in_progress}
+          historias={
+            enProgreso
+          }
         />
 
         <KanbanColumn
-          id="done"
-          titulo="✅ Done"
-          historias={columnas.done}
+          id="aprobada"
+          titulo="✅ Aprobada"
+          historias={aprobada}
         />
       </div>
     </DndContext>

@@ -3,112 +3,202 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+
 import { InjectRepository } from '@nestjs/typeorm';
+
 import { Repository } from 'typeorm';
 
 import { UserStory, EstadoUS } from './user-story.entity';
+
+import { CreateUserStoryDto } from './dto/create-user-story.dto';
+
 import { Proyecto } from '../proyectos/proyecto.entity';
 
 @Injectable()
 export class UserStoriesService {
   constructor(
     @InjectRepository(UserStory)
-    private usRepository: Repository<UserStory>,
+    private readonly userStoryRepository: Repository<UserStory>,
 
     @InjectRepository(Proyecto)
-    private proyectosRepository: Repository<Proyecto>,
+    private readonly proyectoRepository: Repository<Proyecto>,
   ) {}
 
-  // ================================
-  // ✅ CREAR
-  // ================================
-  async create(data: any) {
-    const proyecto = await this.proyectosRepository.findOne({
-      where: { id: data.proyectoId },
-    });
+  // ======================================================
+  // CREAR USER STORY
+  // ======================================================
+
+  async create(
+    dto: CreateUserStoryDto,
+  ): Promise<UserStory> {
+    const proyecto =
+      await this.proyectoRepository.findOne({
+        where: {
+          id: dto.proyectoId,
+        },
+      });
 
     if (!proyecto) {
-      throw new NotFoundException('Proyecto no encontrado');
+      throw new NotFoundException(
+        'Proyecto no encontrado',
+      );
     }
 
-    const nuevaUS = this.usRepository.create({
-      titulo: data.titulo,
-      descripcion: data.descripcion,
-      estimacion: data.estimacion || 0,
-      prioridad: data.prioridad || 1,
-      estado: EstadoUS.BACKLOG,
-      proyecto,
-    });
+    const nuevaHistoria =
+      this.userStoryRepository.create({
+        titulo: dto.titulo,
 
-    return this.usRepository.save(nuevaUS);
+        descripcion: dto.descripcion,
+
+        prioridad:
+          dto.prioridad || 1,
+
+        estimacion:
+          dto.estimacion || 0,
+
+        estado:
+          (dto.estado as EstadoUS) ||
+          EstadoUS.BACKLOG,
+
+        proyecto,
+
+        source:
+          dto.source || 'manual',
+
+        confianza_US:
+          dto.confianza_US || 0,
+
+        confianza_Estimacion:
+          dto.confianza_Estimacion ||
+          0,
+      });
+
+    return await this.userStoryRepository.save(
+      nuevaHistoria,
+    );
   }
 
-  // ================================
-  // ✅ LISTAR
-  // ================================
-  async findAllByProyecto(proyectoId: number) {
-    return this.usRepository.find({
+  // ======================================================
+  // OBTENER HISTORIAS POR PROYECTO
+  // ======================================================
+
+  async findByProyecto(
+    proyectoId: number,
+  ): Promise<UserStory[]> {
+    return await this.userStoryRepository.find({
       where: {
-        proyecto: { id: proyectoId },
+        proyecto: {
+          id: proyectoId,
+        },
+      },
+
+      relations: ['proyecto'],
+
+      order: {
+        id: 'DESC',
       },
     });
   }
 
-  // ================================
-  // 🔥 VALIDAR TRANSICIONES (FIX TIPADO)
-  // ================================
-  private validarTransicion(actual: EstadoUS, nuevo: EstadoUS) {
-    const reglas: Record<EstadoUS, EstadoUS[]> = {
-      [EstadoUS.BACKLOG]: [EstadoUS.EN_PROGRESO],
-      [EstadoUS.EN_PROGRESO]: [EstadoUS.APROBADA],
-      [EstadoUS.APROBADA]: [EstadoUS.DONE],
-      [EstadoUS.DONE]: [],
-    };
+  // ======================================================
+  // OBTENER UNA HISTORIA
+  // ======================================================
 
-    if (!reglas[actual].includes(nuevo)) {
-      throw new BadRequestException(
-        `Transición inválida: ${actual} → ${nuevo}`,
+  async findOne(
+    id: number,
+  ): Promise<UserStory> {
+    const historia =
+      await this.userStoryRepository.findOne({
+        where: { id },
+
+        relations: ['proyecto'],
+      });
+
+    if (!historia) {
+      throw new NotFoundException(
+        'User Story no encontrada',
       );
     }
+
+    return historia;
   }
 
-  // ================================
-  // 🔥 UPDATE CORRECTO (CONVERSIÓN DTO → ENUM)
-  // ================================
-  async update(id: number, data: any) {
-    const us = await this.usRepository.findOne({
-      where: { id },
-    });
+  // ======================================================
+  // ACTUALIZAR
+  // ======================================================
 
-    if (!us) {
-      throw new NotFoundException('User Story no encontrada');
-    }
+  async update(
+    id: number,
+    data: Partial<UserStory>,
+  ): Promise<UserStory> {
+    const historia =
+      await this.findOne(id);
 
-    // 🔥 BLOQUEAR DONE
-    if (us.estado === EstadoUS.DONE) {
-      throw new BadRequestException(
-        'No se puede modificar una US finalizada',
-      );
-    }
+    // ==========================================
+    // VALIDAR TRANSICIONES
+    // ==========================================
 
-    // 🔥 CONVERTIR STRING → ENUM
-    if (data.estado) {
-      const nuevoEstado = data.estado as EstadoUS;
+    if (
+      data.estado &&
+      data.estado !== historia.estado
+    ) {
+      const transicionesValidas =
+        this.obtenerTransicionesValidas(
+          historia.estado,
+        );
 
-      if (!Object.values(EstadoUS).includes(nuevoEstado)) {
-        throw new BadRequestException('Estado inválido');
+      if (
+        !transicionesValidas.includes(
+          data.estado,
+        )
+      ) {
+        throw new BadRequestException(
+          `Transición inválida: ${historia.estado} → ${data.estado}`,
+        );
       }
-
-      this.validarTransicion(us.estado, nuevoEstado);
-      us.estado = nuevoEstado;
     }
 
-    // 🔥 OTROS CAMPOS
-    if (data.titulo !== undefined) us.titulo = data.titulo;
-    if (data.descripcion !== undefined) us.descripcion = data.descripcion;
-    if (data.estimacion !== undefined) us.estimacion = data.estimacion;
-    if (data.prioridad !== undefined) us.prioridad = data.prioridad;
+    Object.assign(historia, data);
 
-    return this.usRepository.save(us);
+    return await this.userStoryRepository.save(
+      historia,
+    );
+  }
+
+  // ======================================================
+  // ELIMINAR
+  // ======================================================
+
+  async remove(
+    id: number,
+  ): Promise<void> {
+    const historia =
+      await this.findOne(id);
+
+    await this.userStoryRepository.remove(
+      historia,
+    );
+  }
+
+  // ======================================================
+  // TRANSICIONES VÁLIDAS
+  // ======================================================
+
+  private obtenerTransicionesValidas(
+    estado: EstadoUS,
+  ): EstadoUS[] {
+    switch (estado) {
+      case EstadoUS.BACKLOG:
+        return [EstadoUS.EN_PROGRESO];
+
+      case EstadoUS.EN_PROGRESO:
+        return [EstadoUS.APROBADA];
+
+      case EstadoUS.APROBADA:
+        return [];
+
+      default:
+        return [];
+    }
   }
 }
