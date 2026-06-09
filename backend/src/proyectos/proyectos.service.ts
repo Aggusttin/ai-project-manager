@@ -30,6 +30,8 @@ export class ProyectosService {
     @InjectRepository(Cliente)
     private clientesRepository: Repository<Cliente>,
     
+    // Inyectamos GeminiService para la IA
+    private readonly geminiService: GeminiService,
   ) {}
 
   // =========================================
@@ -47,12 +49,10 @@ export class ProyectosService {
       });
     }
 
-    // --- SOLUCIÓN: Usar find en lugar de QueryBuilder para evitar errores de JOIN ---
-    // Esto es mucho más seguro para evitar que la relación de usuario falle
     return await this.proyectosRepository.find({
       where: {
         activo: true,
-        usuarios: { id: user.sub } // TypeORM maneja el JOIN automáticamente
+        usuarios: { id: user.sub } 
       },
       relations: ['usuarios', 'clientes'],
       order: { fecha_creacion: 'DESC' }
@@ -117,20 +117,17 @@ export class ProyectosService {
     dto: CreateProyectoDto,
     user: any,
   ) {
-    // 1. Buscamos la entidad completa del usuario que está logueado usando su ID (user.sub)
     const usuarioLogueado = await this.usuariosRepository.findOne({
       where: { id: user.sub },
     });
 
-    // 2. Creamos el proyecto asociándole el usuario adentro del arreglo de 'usuarios'
     const proyecto = this.proyectosRepository.create({
       ...dto,
       activo: true,
       estado: 'activo',
-      usuarios: usuarioLogueado ? [usuarioLogueado] : [], // <-- Se auto-asigna acá
+      usuarios: usuarioLogueado ? [usuarioLogueado] : [],
     });
 
-    // 3. Guardamos en la base de datos relacional
     return this.proyectosRepository.save(
       proyecto,
     );
@@ -198,24 +195,20 @@ export class ProyectosService {
   // =========================================
 
   async restore(id: number, user: any) {
-    // 1. Buscamos el proyecto
     const proyecto = await this.proyectosRepository.findOne({
       where: { id },
-      withDeleted: true, // Importante para encontrar el borrado
+      withDeleted: true,
       relations: ['usuarios'],
     });
 
     if (!proyecto) throw new NotFoundException('Proyecto no encontrado');
 
-    // 2. FORZAR la limpieza del deletedAt manualmente
-    // Esto es más efectivo que solo .restore() si tu configuración es estricta
     await this.proyectosRepository.update(id, { 
       deletedAt: null,
       activo: true,
       estado: 'activo'
     } as any);
 
-    // 3. Asegurar el vínculo con el usuario (la lógica que ya tenías)
     const yaEstaAsignado = proyecto.usuarios?.some((u) => u.id === user.sub);
     if (!yaEstaAsignado) {
       const usuarioLogueado = await this.usuariosRepository.findOne({ where: { id: user.sub } });
@@ -337,31 +330,17 @@ export class ProyectosService {
   }
 
   // =========================================
-  // PRD
+  // PRD (IA IMPLEMENTADA)
   // =========================================
 
   async getPrd(
     id: number,
     user: any,
   ) {
-    const proyecto =
-      await this.findOne(
-        id,
-        user,
-      );
-
-    return {
-      proyectoId: proyecto.id,
-
-      nombre: proyecto.nombre,
-
-      descripcion:
-        proyecto.descripcion,
-
-      mensaje:
-        'PRD pendiente de implementación IA',
-    };
-
+    const proyecto = await this.findOne(id, user);
+    
+    // Llamada al servicio de IA en lugar del mensaje estático
+    return await this.geminiService.generarPrd(proyecto);
   }
 
   async findInactivos(user: any) {
@@ -369,7 +348,7 @@ export class ProyectosService {
       where: { 
         activo: false 
       },
-      withDeleted: true, // Esto es clave para ver los que tienen el soft-delete
+      withDeleted: true, 
       relations: ['usuarios'],
     });
   }

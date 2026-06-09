@@ -1,73 +1,80 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import axios from 'axios';
 
 @Injectable()
 export class GeminiService {
-  private model;
+  private readonly logger = new Logger(GeminiService.name);
+  private readonly apiKey: string;
+  
+  // Lista actualizada con los modelos que tu API key reconoce
+  private readonly modelosPrioridad = [
+    'gemini-3.5-flash', 
+    'gemini-3.1-flash-lite', 
+    'gemini-2.5-flash', 
+    'gemini-2.0-flash'
+  ];
 
-  constructor(
-    private readonly configService: ConfigService,
-  ) {
-    const apiKey =
-      this.configService.get<string>(
-        'GEMINI_API_KEY',
-      );
-
-    const modelName =
-      this.configService.get<string>(
-        'GEMINI_MODEL',
-      ) || 'gemini-2.0-flash';
-
-    const genAI =
-      new GoogleGenerativeAI(apiKey!);
-
-    this.model =
-      genAI.getGenerativeModel({
-        model: modelName,
-      });
+  constructor(private readonly configService: ConfigService) {
+    this.apiKey = this.configService.get<string>('GEMINI_API_KEY')?.trim() || '';
   }
 
-  async generarPrd(
-    proyecto: any,
-  ) {
-    const prompt = `
-Genera un Product Requirements Document (PRD) en formato JSON.
+  async llamarGemini(prompt: string, esperaJson = true): Promise<any> {
+    let lastError;
+    for (const modelName of this.modelosPrioridad) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${this.apiKey}`;
+        
+        const response = await axios.post(url, {
+          contents: [{ parts: [{ text: prompt }] }]
+        });
+        
+        const text = response.data.candidates[0].content.parts[0].text;
+        return esperaJson ? this.limpiarRespuesta(text) : text.trim();
+      } catch (error) {
+        lastError = error.response?.data?.error?.message || error.message;
+        this.logger.warn(`El modelo ${modelName} falló: ${lastError}. Probando siguiente...`);
+      }
+    }
+    throw new InternalServerErrorException(`Gemini no disponible: ${lastError}`);
+  }
 
-Proyecto:
-Nombre: ${proyecto.nombre}
+  private limpiarRespuesta(text: string): any {
+    try {
+      const cleanText = text.replace(/```json|```/g, '').trim();
+      return JSON.parse(cleanText);
+    } catch (e) {
+      this.logger.error('Error al parsear el JSON de Gemini', text);
+      throw new InternalServerErrorException('La IA no devolvió un JSON válido');
+    }
+  }
 
-Descripción:
-${proyecto.descripcion}
+  // MÉTODO FALTANTE QUE CAUSABA EL ERROR
+  async generarPrd(proyecto: any) {
+    const prompt = `Genera un Product Requirements Document (PRD) en formato JSON puro.
+    Proyecto: ${proyecto.nombre}
+    Descripción: ${proyecto.descripcion}
+    Estructura JSON: { "titulo": "string", "resumenEjecutivo": "string", "objetivos": ["string"], "alcance": { "dentro": ["string"], "fuera": ["string"] }, "actores": ["string"], "requisitosFuncionales": ["string"] }.
+    Devuelve SOLO el JSON sin texto adicional.`;
+    return await this.llamarGemini(prompt, true);
+  }
 
-Devuelve exclusivamente JSON con esta estructura:
+  async estimarHistoria(descripcion: string): Promise<number> {
+    const prompt = `Analiza la siguiente User Story y devuelve SOLO un número (Fibonacci: 1, 2, 3, 5, 8, 13) que represente su complejidad. No escribas nada más.
+    User Story: ${descripcion}`;
+    const respuesta = await this.llamarGemini(prompt, false);
+    const numero = parseInt(respuesta);
+    return isNaN(numero) ? 1 : numero;
+  }
 
-{
-  "titulo": "",
-  "resumenEjecutivo": "",
-  "objetivos": [],
-  "alcance": {
-    "dentro": [],
-    "fuera": []
-  },
-  "actores": [],
-  "requisitosFuncionales": []
-}
-`;
+  async generarUserStories(proyecto: any) {
+    const prompt = `Actúa como un API generadora de JSON. Genera 5 User Stories para el proyecto "${proyecto.nombre}". Devuelve EXCLUSIVAMENTE un JSON array. Estructura: [ { "titulo": "string", "descripcion": "string", "prioridad": 1 } ].`;
+    return await this.llamarGemini(prompt, true);
+  }
 
-    const result =
-      await this.model.generateContent(
-        prompt,
-      );
-
-    const text =
-      result.response.text();
-
-    return JSON.parse(
-      text.replace(
-        /```json|```/g,
-        '',
-      ),
-    );
+  async listarModelosDisponibles(): Promise<any> {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${this.apiKey}`;
+    const { data } = await axios.get(url);
+    return data;
   }
 }

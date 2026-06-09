@@ -32,4 +32,16 @@ export class PrdService {
     if (!prd) throw new NotFoundException(`PRD con ID ${id} no encontrado`);
     return prd; // 👈 Ahora ya no es null, siempre es un Prd
   }
+
+  async findByProyectoId(proyectoId: number): Promise<Prd> {
+    const prd = await this.prdRepository.findOne({
+      where: { proyecto_id: proyectoId }, // Asegúrate que el campo sea proyecto_id
+      relations: ['userStories', 'proyecto'],
+    });
+    
+    if (!prd) {
+      throw new NotFoundException(`No se encontró un PRD para el proyecto con ID ${proyectoId}`);
+    }
+    return prd;
+  }
 }

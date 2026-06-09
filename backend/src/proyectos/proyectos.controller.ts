@@ -147,8 +147,7 @@ export class ProyectosController {
 
   @Patch(':id/restore')
   @Roles('superadmin', 'admin_proyecto')
-  async restore(@Param('id') id: string, @Request() req) { // 1. Agregamos @Request() req
-    // 2. Pasamos el id y el usuario (req.user)
+  async restore(@Param('id') id: string, @Request() req) {
     return await this.proyectosService.restore(+id, req.user); 
   }
 
@@ -223,7 +222,7 @@ export class ProyectosController {
   }
 
   // =========================================
-  // PRD
+  // PRD (INTEGRACIÓN IA FASE 1)
   // =========================================
 
   @Get(':id/prd')
