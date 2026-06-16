@@ -14,6 +14,18 @@ import { Cliente } from '../clientes/cliente.entity';
 import { Prd } from '../prd/prd.entity';
 import { UserStory } from '../user-stories/user-story.entity';
 
+export enum EstadoFlujo {
+  CONFIGURACION = 'CONFIGURACION',
+  CARGA_INFORMACION = 'CARGA_INFORMACION',
+  TRANSCRIPCION = 'TRANSCRIPCION',
+  ESPERANDO_VALIDACION_HISTORIAS = 'ESPERANDO_VALIDACION_HISTORIAS',
+  HISTORIAS_CANONICAS = 'HISTORIAS_CANONICAS',
+  ESPERANDO_VALIDACION_ESTIMACIONES = 'ESPERANDO_VALIDACION_ESTIMACIONES',
+  APROBADO_FINAL = 'APROBADO_FINAL',
+  RESULTADOS_REGISTRADOS = 'RESULTADOS_REGISTRADOS',
+  PRD_GENERADO = 'PRD_GENERADO',
+}
+
 @Entity()
 export class Proyecto {
   @PrimaryGeneratedColumn()
@@ -37,6 +49,14 @@ export class Proyecto {
     default: 'backlog',
   })
   estado: string;
+
+  // ✅ NUEVO: Campo para controlar el flujo de trabajo
+  @Column({
+    type: 'enum',
+    enum: EstadoFlujo,
+    default: EstadoFlujo.CONFIGURACION,
+  })
+  estadoFlujo: EstadoFlujo;
 
   @Column({
     type: 'int',

@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 
 import { UserStoriesService } from './user-stories.service';
-import { GeminiService } from '../ia/services/gemini.service'; // <--- Importación añadida
+import { GeminiService } from '../ia/services/gemini.service';
 import { CreateUserStoryDto } from './dto/create-user-story.dto';
 import { UpdateUserStoryDto } from './dto/update-user-story.dto';
 import { UpdateEstadoDto } from './dto/update-estado.dto';
@@ -18,7 +18,7 @@ import { UpdateEstadoDto } from './dto/update-estado.dto';
 export class UserStoriesController {
   constructor(
     private readonly userStoriesService: UserStoriesService,
-    private readonly geminiService: GeminiService, // <--- Inyección añadida
+    private readonly geminiService: GeminiService,
   ) {}
 
   // =========================================================
@@ -28,6 +28,15 @@ export class UserStoriesController {
   @Post()
   create(@Body() dto: CreateUserStoryDto) {
     return this.userStoriesService.create(dto);
+  }
+
+  // ✅ NUEVO: Endpoint para validación humana
+  @Patch(':id/confirmar')
+  async confirmarHistoria(
+    @Param('id') id: string,
+    @Body() body: { esCanonica: boolean; comentario?: string },
+  ) {
+    return await this.userStoriesService.confirmarHistoria(Number(id), body);
   }
 
   @Post('generar-ia/:proyectoId')
@@ -103,7 +112,7 @@ export class UserStoriesController {
     @Param('id') id: string,
     @Body() updateEstadoDto: UpdateEstadoDto,
   ) {
-    return await this.userStoriesService.cambiarEstado(
+    return this.userStoriesService.cambiarEstado(
       Number(id),
       updateEstadoDto.nuevoEstado,
     );
@@ -116,5 +125,22 @@ export class UserStoriesController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.userStoriesService.remove(Number(id));
+  }
+
+  // =========================================================
+  // ESTIMACIÓN AUTOMÁTICA
+  // =========================================================
+
+  @Post('estimar-proyecto/:proyectoId')
+  async estimarProyecto(@Param('proyectoId') proyectoId: string) {
+    return await this.userStoriesService.estimarHistoriasCanonicas(Number(proyectoId));
+  }
+
+  @Patch(':id/confirmar-estimacion')
+  async confirmarEstimacion(
+    @Param('id') id: string,
+    @Body() body: { estimacionConfirmada: number; comentario?: string },
+  ) {
+    return await this.userStoriesService.confirmarEstimacion(Number(id), body);
   }
 }

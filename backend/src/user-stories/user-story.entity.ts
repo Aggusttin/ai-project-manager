@@ -8,10 +8,8 @@ import {
   JoinTable,
   JoinColumn,
 } from 'typeorm';
-
 import { Proyecto } from '../proyectos/proyecto.entity';
 
-// ✅ ENUM CONTROLADO
 export enum EstadoUS {
   BACKLOG = 'backlog',
   EN_PROGRESO = 'en_progreso',
@@ -36,13 +34,18 @@ export class UserStory {
   @Column({ type: 'int', default: 1 })
   prioridad: number;
 
-  // 🔥 IMPORTANTE: ENUM en DB
   @Column({
     type: 'enum',
     enum: EstadoUS,
     default: EstadoUS.BACKLOG,
   })
   estado: EstadoUS;
+
+  @Column({ default: false })
+  esCanonica: boolean; 
+
+  @Column({ type: 'text', nullable: true })
+  comentarioValidacion: string;
 
   @Column({ type: 'float', nullable: true })
   confianza_US: number;
@@ -56,11 +59,15 @@ export class UserStory {
   @CreateDateColumn()
   fecha_creacion: Date;
 
-  @ManyToOne(() => Proyecto)
+  @ManyToOne(() => Proyecto, (proyecto) => proyecto.userStories)
   @JoinColumn({ name: 'proyecto_id' })
   proyecto: Proyecto;
 
   @ManyToMany(() => UserStory)
   @JoinTable({ name: 'us_dependencias' })
   dependencias: UserStory[];
+
+  // ✅ Campo necesario para la Validación Humana 2
+  @Column({ default: false })
+  estimacionValidada: boolean;
 }
