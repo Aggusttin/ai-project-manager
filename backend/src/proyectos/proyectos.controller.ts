@@ -11,13 +11,10 @@ import {
 } from '@nestjs/common';
 
 import { ProyectosService } from './proyectos.service';
-
 import { CreateProyectoDto } from './dto/create-proyecto.dto';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-
 import { RolesGuard } from '../auth/guards/roles.guard';
-
 import { Roles } from '../auth/decorators/roles.decorator';
 
 @Controller('proyectos')
@@ -30,14 +27,12 @@ export class ProyectosController {
     private readonly proyectosService: ProyectosService,
   ) {}
 
-  // =========================================
-  // LISTAR PROYECTOS
-  // =========================================
-
   @Get('inactivos')
   @Roles('superadmin', 'admin_proyecto')
   findInactivos(@Request() req) {
-    return this.proyectosService.findInactivos(req.user);
+    return this.proyectosService.findInactivos(
+      req.user,
+    );
   }
 
   @Get()
@@ -51,10 +46,6 @@ export class ProyectosController {
       req.user,
     );
   }
-
-  // =========================================
-  // OBTENER PROYECTO
-  // =========================================
 
   @Get(':id')
   @Roles(
@@ -74,10 +65,6 @@ export class ProyectosController {
     );
   }
 
-  // =========================================
-  // CREAR
-  // =========================================
-
   @Post()
   @Roles(
     'superadmin',
@@ -94,10 +81,6 @@ export class ProyectosController {
       req.user,
     );
   }
-
-  // =========================================
-  // EDITAR
-  // =========================================
 
   @Patch(':id')
   @Roles(
@@ -120,10 +103,6 @@ export class ProyectosController {
     );
   }
 
-  // =========================================
-  // DESACTIVAR (SOFT DELETE)
-  // =========================================
-
   @Patch(':id/delete')
   @Roles(
     'superadmin',
@@ -141,19 +120,22 @@ export class ProyectosController {
     );
   }
 
-  // =========================================
-  // REACTIVAR
-  // =========================================
-
   @Patch(':id/restore')
-  @Roles('superadmin', 'admin_proyecto')
-  async restore(@Param('id') id: string, @Request() req) {
-    return await this.proyectosService.restore(+id, req.user); 
-  }
+  @Roles(
+    'superadmin',
+    'admin_proyecto',
+  )
+  restore(
+    @Param('id', ParseIntPipe)
+    id: number,
 
-  // =========================================
-  // ASIGNAR USUARIOS
-  // =========================================
+    @Request() req,
+  ) {
+    return this.proyectosService.restore(
+      id,
+      req.user,
+    );
+  }
 
   @Post(':id/asignar-usuarios')
   @Roles(
@@ -175,10 +157,6 @@ export class ProyectosController {
     );
   }
 
-  // =========================================
-  // ASIGNAR CLIENTES
-  // =========================================
-
   @Post(':id/asignar-clientes')
   @Roles(
     'superadmin',
@@ -199,10 +177,6 @@ export class ProyectosController {
     );
   }
 
-  // =========================================
-  // RESUMEN
-  // =========================================
-
   @Get(':id/resumen')
   @Roles(
     'superadmin',
@@ -220,10 +194,6 @@ export class ProyectosController {
       req.user,
     );
   }
-
-  // =========================================
-  // PRD (INTEGRACIÓN IA FASE 1)
-  // =========================================
 
   @Get(':id/prd')
   @Roles(

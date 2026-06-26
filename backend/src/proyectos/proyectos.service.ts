@@ -9,11 +9,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Proyecto } from './proyecto.entity';
-
 import { CreateProyectoDto } from './dto/create-proyecto.dto';
 
 import { Usuario } from '../usuarios/usuario.entity';
-
 import { Cliente } from '../clientes/cliente.entity';
 
 import { GeminiService } from '../ia/services/gemini.service';
@@ -29,57 +27,56 @@ export class ProyectosService {
 
     @InjectRepository(Cliente)
     private clientesRepository: Repository<Cliente>,
-    
-    // Inyectamos GeminiService para la IA
+
     private readonly geminiService: GeminiService,
   ) {}
 
-  // =========================================
-  // LISTAR
-  // =========================================
-
   async findAll(user: any) {
-    const userRole = typeof user.rol === 'object' ? user.rol?.nombre : user.rol;
+    const userRole =
+      typeof user.rol === 'object'
+        ? user.rol?.nombre
+        : user.rol;
 
     if (userRole === 'superadmin') {
       return this.proyectosRepository.find({
-        withDeleted: false, // Solo activos
+        withDeleted: false,
         relations: ['usuarios', 'clientes'],
-        order: { activo: 'DESC', fecha_creacion: 'DESC' },
+        order: {
+          activo: 'DESC',
+          fecha_creacion: 'DESC',
+        },
       });
     }
 
-    return await this.proyectosRepository.find({
+    return this.proyectosRepository.find({
       where: {
         activo: true,
-        usuarios: { id: user.sub } 
+        usuarios: {
+          id: user.sub,
+        },
       },
       relations: ['usuarios', 'clientes'],
-      order: { fecha_creacion: 'DESC' }
+      order: {
+        fecha_creacion: 'DESC',
+      },
     });
   }
-
-  // =========================================
-  // OBTENER UNO
-  // =========================================
 
   async findOne(
     id: number,
     user: any,
   ) {
     const proyecto =
-      await this.proyectosRepository.findOne(
-        {
-          where: { id },
+      await this.proyectosRepository.findOne({
+        where: { id },
 
-          withDeleted: true,
+        withDeleted: true,
 
-          relations: [
-            'usuarios',
-            'clientes',
-          ],
-        },
-      );
+        relations: [
+          'usuarios',
+          'clientes',
+        ],
+      });
 
     if (!proyecto) {
       throw new NotFoundException(
@@ -109,33 +106,31 @@ export class ProyectosService {
     return proyecto;
   }
 
-  // =========================================
-  // CREAR
-  // =========================================
-
   async create(
     dto: CreateProyectoDto,
     user: any,
   ) {
-    const usuarioLogueado = await this.usuariosRepository.findOne({
-      where: { id: user.sub },
-    });
+    const usuarioLogueado =
+      await this.usuariosRepository.findOne({
+        where: {
+          id: user.sub,
+        },
+      });
 
-    const proyecto = this.proyectosRepository.create({
-      ...dto,
-      activo: true,
-      estado: 'activo',
-      usuarios: usuarioLogueado ? [usuarioLogueado] : [],
-    });
+    const proyecto =
+      this.proyectosRepository.create({
+        ...dto,
+        activo: true,
+        estado: 'activo',
+        usuarios: usuarioLogueado
+          ? [usuarioLogueado]
+          : [],
+      });
 
     return this.proyectosRepository.save(
       proyecto,
     );
   }
-
-  // =========================================
-  // EDITAR
-  // =========================================
 
   async update(
     id: number,
@@ -158,10 +153,6 @@ export class ProyectosService {
     );
   }
 
-  // =========================================
-  // DESACTIVAR
-  // =========================================
-
   async remove(
     id: number,
     user: any,
@@ -173,7 +164,6 @@ export class ProyectosService {
       );
 
     proyecto.activo = false;
-
     proyecto.estado = 'inactivo';
 
     await this.proyectosRepository.save(
@@ -190,55 +180,74 @@ export class ProyectosService {
     };
   }
 
-  // =========================================
-  // REACTIVAR
-  // =========================================
+  async restore(
+    id: number,
+    user: any,
+  ) {
+    const proyecto =
+      await this.proyectosRepository.findOne({
+        where: { id },
+        withDeleted: true,
+        relations: ['usuarios'],
+      });
 
-  async restore(id: number, user: any) {
-    const proyecto = await this.proyectosRepository.findOne({
-      where: { id },
-      withDeleted: true,
-      relations: ['usuarios'],
-    });
+    if (!proyecto) {
+      throw new NotFoundException(
+        'Proyecto no encontrado',
+      );
+    }
 
-    if (!proyecto) throw new NotFoundException('Proyecto no encontrado');
+    await this.proyectosRepository.update(
+      id,
+      {
+        deletedAt: null,
+        activo: true,
+        estado: 'activo',
+      } as any,
+    );
 
-    await this.proyectosRepository.update(id, { 
-      deletedAt: null,
-      activo: true,
-      estado: 'activo'
-    } as any);
+    const yaEstaAsignado =
+      proyecto.usuarios?.some(
+        (u) => u.id === user.sub,
+      );
 
-    const yaEstaAsignado = proyecto.usuarios?.some((u) => u.id === user.sub);
     if (!yaEstaAsignado) {
-      const usuarioLogueado = await this.usuariosRepository.findOne({ where: { id: user.sub } });
-      if (usuarioLogueado) {
-        proyecto.usuarios = [...(proyecto.usuarios || []), usuarioLogueado];
-        await this.proyectosRepository.save(proyecto);
+      const usuario =
+        await this.usuariosRepository.findOne({
+          where: {
+            id: user.sub,
+          },
+        });
+
+      if (usuario) {
+        proyecto.usuarios = [
+          ...(proyecto.usuarios || []),
+          usuario,
+        ];
+
+        await this.proyectosRepository.save(
+          proyecto,
+        );
       }
     }
 
-    return { message: 'Proyecto reactivado correctamente' };
+    return {
+      message:
+        'Proyecto reactivado correctamente',
+    };
   }
-
-  // =========================================
-  // ASIGNAR USUARIOS
-  // =========================================
 
   async asignarUsuarios(
     proyectoId: number,
     usuariosIds: number[],
   ) {
     const proyecto =
-      await this.proyectosRepository.findOne(
-        {
-          where: {
-            id: proyectoId,
-          },
-
-          relations: ['usuarios'],
+      await this.proyectosRepository.findOne({
+        where: {
+          id: proyectoId,
         },
-      );
+        relations: ['usuarios'],
+      });
 
     if (!proyecto) {
       throw new NotFoundException(
@@ -258,24 +267,17 @@ export class ProyectosService {
     );
   }
 
-  // =========================================
-  // ASIGNAR CLIENTES
-  // =========================================
-
   async asignarClientes(
     proyectoId: number,
     clientesIds: number[],
   ) {
     const proyecto =
-      await this.proyectosRepository.findOne(
-        {
-          where: {
-            id: proyectoId,
-          },
-
-          relations: ['clientes'],
+      await this.proyectosRepository.findOne({
+        where: {
+          id: proyectoId,
         },
-      );
+        relations: ['clientes'],
+      });
 
     if (!proyecto) {
       throw new NotFoundException(
@@ -295,10 +297,6 @@ export class ProyectosService {
     );
   }
 
-  // =========================================
-  // RESUMEN
-  // =========================================
-
   async getResumen(
     id: number,
     user: any,
@@ -311,44 +309,40 @@ export class ProyectosService {
 
     return {
       id: proyecto.id,
-
       nombre: proyecto.nombre,
-
       descripcion:
         proyecto.descripcion,
-
       estado: proyecto.estado,
-
       activo: proyecto.activo,
-
       usuarios:
         proyecto.usuarios?.length || 0,
-
       clientes:
         proyecto.clientes?.length || 0,
     };
   }
 
-  // =========================================
-  // PRD (IA IMPLEMENTADA)
-  // =========================================
-
   async getPrd(
     id: number,
     user: any,
   ) {
-    const proyecto = await this.findOne(id, user);
-    
-    // Llamada al servicio de IA en lugar del mensaje estático
-    return await this.geminiService.generarPrd(proyecto);
+    const proyecto =
+      await this.findOne(
+        id,
+        user,
+      );
+
+    return this.geminiService.generarPrd(
+      proyecto,
+      [],
+    );
   }
 
   async findInactivos(user: any) {
     return this.proyectosRepository.find({
-      where: { 
-        activo: false 
+      where: {
+        activo: false,
       },
-      withDeleted: true, 
+      withDeleted: true,
       relations: ['usuarios'],
     });
   }

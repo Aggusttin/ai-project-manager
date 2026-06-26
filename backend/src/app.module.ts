@@ -31,6 +31,8 @@ import { PrdModule } from './prd/prd.module';
 
 import { IaModule } from './ia/ia.module';
 
+import { ContextosModule } from './contextos/contextos.module';
+
 @Module({
   imports: [
     // =========================================================
@@ -46,12 +48,12 @@ import { IaModule } from './ia/ia.module';
     // RATE LIMIT
     // =========================================================
 
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60000,
-        limit: 20,
-      },
-    ]),
+   ThrottlerModule.forRoot([
+  {
+    limit: 20,
+    ttl: 60,
+  },
+]),
 
     // =========================================================
     // DATABASE
@@ -116,6 +118,9 @@ import { IaModule } from './ia/ia.module';
     PrdModule,
 
     IaModule,
+
+    ContextosModule,
+    
   ],
 })
 export class AppModule {}
