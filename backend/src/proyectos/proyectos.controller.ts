@@ -195,6 +195,24 @@ export class ProyectosController {
     );
   }
 
+  @Get(':id/roadmap')
+  @Roles(
+    'superadmin',
+    'admin_proyecto',
+    'desarrollador',
+  )
+  getRoadmap(
+    @Param('id', ParseIntPipe)
+    id: number,
+
+    @Request() req,
+  ) {
+    return this.proyectosService.getRoadmap(
+      id,
+      req.user,
+    );
+  }
+
   @Get(':id/prd')
   @Roles(
     'superadmin',

@@ -15,5 +15,6 @@ import { IaModule } from '../ia/ia.module';
   ],
   controllers: [UserStoriesController],
   providers: [UserStoriesService],
+  exports: [UserStoriesService],
 })
 export class UserStoriesModule {}

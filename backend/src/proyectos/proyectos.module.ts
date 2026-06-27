@@ -15,6 +15,9 @@ import { Cliente } from '../clientes/cliente.entity';
 import { UserStory } from '../user-stories/user-story.entity';
 
 import { IaModule } from '../ia/ia.module';
+import { ContextosModule } from '../contextos/contextos.module';
+import { PrdModule } from '../prd/prd.module';
+import { UserStoriesModule } from '../user-stories/user-stories.module';
 
 @Module({
   imports: [
@@ -26,6 +29,9 @@ import { IaModule } from '../ia/ia.module';
     ]),
 
     IaModule,
+    ContextosModule,
+    PrdModule,
+    UserStoriesModule,
   ],
 
   controllers: [

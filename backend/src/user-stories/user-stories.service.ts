@@ -104,7 +104,7 @@ export class UserStoriesService {
   async findByProyecto(proyectoId: number): Promise<UserStory[]> {
     return await this.userStoryRepository.find({
       where: { proyecto: { id: proyectoId } },
-      relations: ['proyecto'],
+      relations: ['proyecto', 'dependencias'],
       order: { id: 'DESC' },
     });
   }
@@ -203,6 +203,14 @@ export class UserStoriesService {
   }
 
   async generarHistoriasDesdePrd(proyectoId: number): Promise<UserStory[]> {
+    const historiasExistentes = await this.findByProyecto(
+      proyectoId,
+    );
+
+    if (historiasExistentes.length > 0) {
+      return historiasExistentes;
+    }
+
     const prd = await this.prdService.findByProyectoId(proyectoId);
     const historiasGeneradas = await this.geminiService.generarUserStories({ 
       nombre: prd.titulo, 
