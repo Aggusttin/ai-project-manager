@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
-import KanbanBoard from "@/components/kanban/KanbanBoard";
+import KanbanBoard from "@/components/Kanban/KanbanBoard";
 import UserStoryModal from "@/components/user-stories/UserStoryModal";
 import { useUserStories } from "@/hooks/useUserStories";
 
@@ -60,7 +60,7 @@ export default function UserStoriesPage() {
   ) => {
     await crearHistoria({
       ...data,
-      estado: "backlog",
+      estado: "BACKLOG",
     });
 
     setModalOpen(false);

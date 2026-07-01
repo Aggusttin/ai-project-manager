@@ -37,8 +37,18 @@ export default function PrivateLayout({
     },
 
     {
+      href: "/contextos",
+      label: "Contextos",
+    },
+
+    {
       href: "/prd",
       label: "PRD",
+    },
+
+    {
+      href: "/roadmap",
+      label: "Roadmap",
     },
 
     {

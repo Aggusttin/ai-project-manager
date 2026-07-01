@@ -2,8 +2,15 @@
 import React from 'react';
 import { ProyectoStatusBadge } from './ProyectoStatusBadge';
 import { ProyectoActions } from './ProyectoActions';
+import type { Proyecto } from '@/services/proyectos.service';
 
-// ... (mantén tu interface Proyecto y ProyectoTableProps igual)
+interface ProyectoTableProps {
+  proyectos: Proyecto[];
+  onDesactivar: (id: number) => void;
+  onReactivar: (id: number) => void;
+  onEditar: (proyecto: Proyecto) => void;
+  userRol: string;
+}
 
 export const ProyectoTable: React.FC<ProyectoTableProps> = ({ 
   proyectos, onDesactivar, onReactivar, onEditar, userRol 

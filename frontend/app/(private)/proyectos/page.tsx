@@ -5,6 +5,7 @@ import { useProyectos } from '@/hooks/useProyectos';
 import { ProyectoTable } from '@/components/proyectos/ProyectoTable';
 import { ProyectoFormModal } from '@/components/proyectos/ProyectoFormModal';
 import { ProyectoFilters } from '@/components/proyectos/ProyectoFilters';
+import type { Proyecto } from '@/services/proyectos.service';
 
 export default function ProyectosPage() {
   const { proyectos, loading, mostrarInactivos, setMostrarInactivos, guardar, desactivar, reactivar } = useProyectos();
@@ -46,7 +47,7 @@ export default function ProyectosPage() {
         proyectos={proyectosFiltrados} 
         onDesactivar={desactivar} 
         onReactivar={reactivar}
-        onEditar={(p) => { setEditing({ id: p.id, nombre: p.nombre, descripcion: p.descripcion || "" }); setModalOpen(true); }}
+        onEditar={(p: Proyecto) => { setEditing({ id: p.id, nombre: p.nombre, descripcion: p.descripcion || "" }); setModalOpen(true); }}
         userRol={user?.rol || "administrador"} 
       />
 
@@ -54,6 +55,7 @@ export default function ProyectosPage() {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         proyectoInicial={editing}
+        modoEdicion={Boolean(editing)}
         onGuardar={async (n, d) => { 
           await guardar(editing?.id || null, { nombre: n, descripcion: d }); 
           setModalOpen(false); 

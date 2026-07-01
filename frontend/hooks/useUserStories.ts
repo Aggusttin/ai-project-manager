@@ -10,7 +10,7 @@ import {
 import { toast } from "sonner";
 
 export function useUserStories(
-  proyectoId?: number,
+  proyectoId?: number | null,
 ) {
   const [historias, setHistorias] =
     useState<UserStory[]>([]);

@@ -1,5 +1,4 @@
 interface Props {
-  proyecto: any;
   estaActivo: boolean;
   userRol: string;
   onEditar: () => void;

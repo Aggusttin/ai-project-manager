@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 export default function ProyectoDetalle() {
   const { id } = useParams();

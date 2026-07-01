@@ -9,7 +9,7 @@ interface Props {
 
   onGuardar: (data: any) => void;
 
-  proyectoId: number;
+  proyectoId?: number | null;
 }
 
 export default function UserStoryModal({
@@ -122,11 +122,8 @@ export default function UserStoryModal({
             onClick={() =>
               onGuardar({
                 ...form,
-
                 proyectoId,
-
-                estado:
-                  "backlog",
+                estado: "BACKLOG",
               })
             }
             className="px-5 py-3 rounded-lg bg-blue-600 text-white"

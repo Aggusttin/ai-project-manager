@@ -2,33 +2,38 @@
 
 import {
   useEffect,
+  useState,
 } from "react";
 
 import {
   useRouter,
 } from "next/navigation";
 
-export function useAuth() {
-  const router =
-    useRouter();
+export interface AuthState {
+  user: Record<string, any> | null;
+}
+
+export function useAuth(): AuthState {
+  const router = useRouter();
+  const [auth, setAuth] = useState<AuthState>({ user: null });
 
   useEffect(() => {
-    // evita error SSR
-    if (
-      typeof window ===
-      "undefined"
-    ) {
+    if (typeof window === "undefined") {
       return;
     }
 
-    const token =
-      localStorage.getItem(
-        "token"
-      );
+    const token = localStorage.getItem("token");
+    const user = localStorage.getItem("user");
 
-    // por si no existe token
     if (!token) {
       router.push("/login");
+      return;
     }
+
+    setAuth({
+      user: user ? JSON.parse(user) : null,
+    });
   }, [router]);
+
+  return auth;
 }
